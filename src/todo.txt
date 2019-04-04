@@ -1,0 +1,1 @@
+- ask bruce if the names HAVE to be point_set, point_list, corner_list, etc.

@@ -26,13 +26,13 @@ CXXFLAGS = $(CFLAGS)
 LDFLAGS = -L/usr/lib/x86_64-linux-gnu # opencv libraries are here
 
 # opencv libraries
-LDLIBS = -lopencv_core -lopencv_highgui -lopencv_video -lopencv_videoio -lopencv_imgproc -lopencv_imgcodecs
+LDLIBS = -lopencv_core -lopencv_highgui -lopencv_video -lopencv_videoio -lopencv_imgproc -lopencv_imgcodecs -lopencv_calib3d
 
 
 
 BINDIR = ../bin
 
-classifier: classifier.o
+main: main.o
 	$(CC) $^ -o $(BINDIR)/$@ $(LDFLAGS) $(LDLIBS)
 
 clean:

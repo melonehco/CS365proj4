@@ -1,9 +1,9 @@
-/* main.cpp
- * Classifies given image or video input after scanning an 
- * image database first in order to gather data about all object categories.
+/* calibration.cpp
+ * Allows the user to select video input frames for chessboard corner detection
+ * and calculates camera calibration based on these corners
  * 
- * to run:
- * make main
+ * to compile:
+ * make calibration
  * 
  * Melody Mao & Zena Abulhab
  * CS365 Spring 2019
@@ -134,8 +134,10 @@ int openVideoInput( )
         vector<Point2f> corners = detectCorners(frame, chessboardSize);
 
         imshow("Video", frame);
+
+        //check for user keyboard input
         char key = waitKey(10);
-        if(key == 's') {
+        if(key == 's') { //s to select calibration frame
 
 		    savedCornerSets.push_back(corners);
             savedPointSets.push_back( buildPointSet(chessboardSize) );
@@ -144,11 +146,37 @@ int openVideoInput( )
             
             filenameNum++;
 		}
-        else if(key == 'c') {
+        else if(key == 'c') { //c to calibrate camera
             if (savedCornerSets.size() >= 5)
             {
-                double reprojError = calibrateCamera(savedPointSets, savedCornerSets, frame.size(), cameraMatrix, distCoeffs, rvecs, tvecs, CV_CALIB_FIX_ASPECT_RATIO);
+                double reprojError = calibrateCamera(savedPointSets, savedCornerSets, frame.size(),
+                                                     cameraMatrix, distCoeffs, rvecs, tvecs,
+                                                     CV_CALIB_FIX_ASPECT_RATIO);
                 printCalibrationInfo(cameraMatrix, distCoeffs, reprojError);
+            }
+        }
+        else if(key == 'f') //f to write camera intrinsic parameters to a file
+        {
+            if (distCoeffs.at<double>(0, 0) != 0) //if distCoeffs have been set
+            {
+                ofstream outfile;
+                outfile.open ("calibration.txt");
+
+                //write in camera matrix
+                for (int i = 0; i < 3; i++)
+                {
+                    outfile << cameraMatrix.at<double>(i, 0) << " "
+                            << cameraMatrix.at<double>(i, 1) << " " 
+                            << cameraMatrix.at<double>(i, 2) << "\n";
+                }
+
+                //write in distortion coeffs
+                for (int i = 0; i < distCoeffs.rows; i++)
+                {
+                    outfile << distCoeffs.at<double>(i, 0) << " ";
+                }
+
+                outfile.close();
             }
         }
 		else if(key == 'q') {

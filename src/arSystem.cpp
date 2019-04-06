@@ -29,6 +29,10 @@
 using namespace std;
 using namespace cv;
 
+Scalar red = Scalar(0, 0, 255);
+Scalar green = Scalar(0, 255, 0);
+Scalar blue = Scalar(255, 0, 0);
+
 void readCalibrationFile(char* calibrationFilename, Mat &cameraMatrix, Mat &distCoeffs)
 {
     ifstream paramFile (calibrationFilename);
@@ -42,11 +46,10 @@ void readCalibrationFile(char* calibrationFilename, Mat &cameraMatrix, Mat &dist
             getline(paramFile, line);
             strcpy(lineArr, line.c_str());
 
-            for (int j = 0; j < 3; j++) //loop for 3 columns in each row
-            {
-                cameraMatrix.at<double>(i, j) = atof( strtok(lineArr, " ") );
-
-            }
+            //for 3 columns in each row
+            cameraMatrix.at<double>(i, 0) = atof( strtok(lineArr, " ") );
+            cameraMatrix.at<double>(i, 1) = atof( strtok(NULL, " ") );
+            cameraMatrix.at<double>(i, 2) = atof( strtok(NULL, " ") );
         }
 
         //read in distortion coeffs
@@ -69,6 +72,26 @@ void readCalibrationFile(char* calibrationFilename, Mat &cameraMatrix, Mat &dist
         cout << "unable to open calibration file\n";
         exit(-1);
     }
+
+    cout << "\ncamera matrix:\n";
+    for (int i = 0; i < cameraMatrix.rows; i++)
+    {
+        for (int j = 0; j < cameraMatrix.cols; j++)
+        {
+            cout << cameraMatrix.at<double>(i, j) << " ";
+        }
+        cout << "\n";
+    }
+
+    cout << "\ndistortion coefficients:\n";
+    for (int i = 0; i < distCoeffs.rows; i++)
+    {
+        cout << distCoeffs.at<double>(i, 0) << " ";
+    }
+    cout << "\n";
+
+    string ugh;
+    cin >> ugh;
 }
 
 /**
@@ -87,6 +110,40 @@ vector<Point3f> buildPointSet(Size chessboardSize)
     }
     
     return points;
+}
+
+void drawAxes(Mat &img, Mat &rvec, Mat &tvec, Mat &cameraMatrix, Mat &distCoeffs)
+{
+    vector<Point3f> axesPoints{{0, 0, 0}, {1, 0, 0}, {0, -1, 0}, {0, 0, 1}};
+    vector<Point2f> axesImgPoints;
+    projectPoints(axesPoints, rvec, tvec, cameraMatrix, distCoeffs, axesImgPoints);
+            
+    //draw axis lines
+    line(img, axesImgPoints[0], axesImgPoints[1], red, 2); //thickness = 2
+    line(img, axesImgPoints[0], axesImgPoints[2], green, 2);
+    line(img, axesImgPoints[0], axesImgPoints[3], blue, 2);
+}
+
+void drawRectPrism(Mat &img, Mat &rvec, Mat &tvec, Mat &cameraMatrix, Mat &distCoeffs)
+{
+    vector<Point3f> points{{0, 0, 0}, {0, 0, 3}, {4, 0, 3}, {4, 0, 0},
+                           {0, -1, 0}, {0, -1, 3}, {4, -1, 3}, {4, -1, 0}};
+    vector<Point2f> imgPoints;
+    projectPoints(points, rvec, tvec, cameraMatrix, distCoeffs, imgPoints);
+            
+    //draw axis lines
+    line(img, imgPoints[0], imgPoints[1], red, 2); //thickness = 2
+    line(img, imgPoints[1], imgPoints[2], red, 2);
+    line(img, imgPoints[2], imgPoints[3], red, 2);
+    line(img, imgPoints[3], imgPoints[0], red, 2);
+    line(img, imgPoints[0], imgPoints[4], green, 2); //thickness = 2
+    line(img, imgPoints[1], imgPoints[5], green, 2);
+    line(img, imgPoints[2], imgPoints[6], green, 2);
+    line(img, imgPoints[3], imgPoints[7], green, 2);
+    line(img, imgPoints[4], imgPoints[5], blue, 2); //thickness = 2
+    line(img, imgPoints[5], imgPoints[6], blue, 2);
+    line(img, imgPoints[6], imgPoints[7], blue, 2);
+    line(img, imgPoints[7], imgPoints[4], blue, 2);
 }
 
 int openVideoInput( Mat cameraMatrix, Mat distCoeffs )
@@ -110,8 +167,6 @@ int openVideoInput( Mat cameraMatrix, Mat distCoeffs )
 
     Size chessboardSize(9,6); // decided by user
 
-
-
     int filenameNum = 0;
     int printIntervalCount = 0;
 	for(;;) {
@@ -126,9 +181,8 @@ int openVideoInput( Mat cameraMatrix, Mat distCoeffs )
 
         if (chessboardFound)
         {
-            cout << "solving pnp\n";
             solvePnP(point_set, corner_set, cameraMatrix, distCoeffs, rvec, tvec);
-            
+            drawRectPrism(frame, rvec, tvec, cameraMatrix, distCoeffs);
         }
 
         imshow("Video", frame);
@@ -143,13 +197,14 @@ int openVideoInput( Mat cameraMatrix, Mat distCoeffs )
         printIntervalCount++;
         if (printIntervalCount%5 == 0)
         {
-            cout << printIntervalCount << "\n";
-            cout << chessboardFound << "\n";
+            cout << "frame " << printIntervalCount << "\n";
+            cout << "rvec: ";
             for (int i = 0; i < 3; i++)
             {
                 cout << rvec.at<double>(i) << " ";
             }
             cout << "\n";
+            cout << "tvec: ";
             for (int i = 0; i < 3; i++)
             {
                 cout << tvec.at<double>(i) << " ";
@@ -183,7 +238,6 @@ int main(int argc, char *argv[])
     readCalibrationFile(paramFilename, cameraMatrix, distCoeffs);
 
     openVideoInput(cameraMatrix, distCoeffs);
-    
 
-
+    return 0;
 }

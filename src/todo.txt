@@ -1,1 +1,2 @@
 - ask bruce if the names HAVE to be point_set, point_list, corner_list, etc.
+- Get header files working?? So we don't need to define 2 buildPointSet methods

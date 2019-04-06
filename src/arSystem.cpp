@@ -29,23 +29,10 @@
 using namespace std;
 using namespace cv;
 
-int main(int argc, char *argv[])
+void readCalibrationFile(char* calibrationFilename, Mat &cameraMatrix, Mat &distCoeffs)
 {
-    char paramFilename[256];
+    ifstream paramFile (calibrationFilename);
 
-	// If user didn't give parameter file name
-	if(argc < 2) 
-	{
-		cout << "Usage: ../bin/arSystem |parameter file name|\n";
-		exit(-1);
-	}
-
-	strcpy(paramFilename, argv[1]);
-
-    //read in camera calibration parameters
-    Mat cameraMatrix(3, 3, CV_64FC1);
-    Mat distCoeffs = Mat::zeros(8, 1, CV_64F);
-    ifstream paramFile ("calibration.txt");
     if (paramFile.is_open())
     {
         string line;
@@ -58,19 +45,20 @@ int main(int argc, char *argv[])
             for (int j = 0; j < 3; j++) //loop for 3 columns in each row
             {
                 cameraMatrix.at<double>(i, j) = atof( strtok(lineArr, " ") );
+
             }
         }
 
         //read in distortion coeffs
         getline(paramFile, line);
+
         strcpy(lineArr, line.c_str());
         char *word = strtok(lineArr, " ");
         int i = 0;
-        while (word) //loop while there are more words to read in on the line
+        while (word != NULL) //loop while there are more words to read in on the line
         {
             distCoeffs.at<double>(i, 0) = atof( word );
-
-            word = strtok(lineArr, " ");
+            word = strtok(NULL, " ");
             i++;
         }
         
@@ -81,6 +69,121 @@ int main(int argc, char *argv[])
         cout << "unable to open calibration file\n";
         exit(-1);
     }
+}
+
+/**
+ * Converts the given corners from pixel coordinates to units of chessboard squares
+ */
+vector<Point3f> buildPointSet(Size chessboardSize)
+{
+    vector<Point3f> points;
     
+    for (int i = 0; i < chessboardSize.height; i++)
+    {
+        for (int j = 0; j < chessboardSize.width; j++)
+        {
+            points.push_back(Point3f(j, -i, 0));
+        }
+    }
+    
+    return points;
+}
+
+int openVideoInput( Mat cameraMatrix, Mat distCoeffs )
+{
+    VideoCapture *capdev;
+
+	// open the video device
+	capdev = new cv::VideoCapture(0);
+	if( !capdev->isOpened() ) {
+		printf("Unable to open video device\n");
+		return(-1);
+	}
+
+	cv::Size refS( (int) capdev->get(CAP_PROP_FRAME_WIDTH ),
+		       (int) capdev->get(CAP_PROP_FRAME_HEIGHT));
+
+	printf("Expected size: %d %d\n", refS.width, refS.height);
+
+	namedWindow("Video", 1);
+	Mat frame;
+
+    Size chessboardSize(9,6); // decided by user
+
+
+
+    int filenameNum = 0;
+    int printIntervalCount = 0;
+	for(;;) {
+		*capdev >> frame; // get a new frame from the camera, treat as a stream
+
+        vector<Point2f> corner_set;
+        vector<Point3f> point_set = buildPointSet(chessboardSize);
+        Mat rvec = Mat::zeros(1, 3, DataType<double>::type);
+        Mat tvec = Mat::zeros(1, 3, DataType<double>::type);
+
+        bool chessboardFound = findChessboardCorners(frame, chessboardSize, corner_set);
+
+        if (chessboardFound)
+        {
+            cout << "solving pnp\n";
+            solvePnP(point_set, corner_set, cameraMatrix, distCoeffs, rvec, tvec);
+            
+        }
+
+        imshow("Video", frame);
+
+        //check for user keyboard input
+        char key = waitKey(10);
+        
+		if(key == 'q') {
+		    break;
+		}
+
+        printIntervalCount++;
+        if (printIntervalCount%5 == 0)
+        {
+            cout << printIntervalCount << "\n";
+            cout << chessboardFound << "\n";
+            for (int i = 0; i < 3; i++)
+            {
+                cout << rvec.at<double>(i) << " ";
+            }
+            cout << "\n";
+            for (int i = 0; i < 3; i++)
+            {
+                cout << tvec.at<double>(i) << " ";
+            }
+            cout << "\n\n";
+        }
+
+	}
+
+	// terminate the video capture
+	delete capdev;
+    return (0);
+}
+
+int main(int argc, char *argv[])
+{
+    char paramFilename[256];
+	// If user didn't give parameter file name
+	if(argc < 2) 
+	{
+		cout << "Usage: ../bin/arSystem |parameter file name|\n";
+		exit(-1);
+	}
+
+	strcpy(paramFilename, argv[1]);
+
+    Mat cameraMatrix(3, 3, CV_64FC1);
+    Mat distCoeffs = Mat::zeros(8, 1, CV_64F);
+
+    //read in camera calibration parameters
+    readCalibrationFile(paramFilename, cameraMatrix, distCoeffs);
+
+    openVideoInput(cameraMatrix, distCoeffs);
+    
+
 
 }

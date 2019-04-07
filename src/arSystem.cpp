@@ -131,7 +131,7 @@ void drawRectPrism(Mat &img, Mat &rvec, Mat &tvec, Mat &cameraMatrix, Mat &distC
     vector<Point2f> imgPoints;
     projectPoints(points, rvec, tvec, cameraMatrix, distCoeffs, imgPoints);
             
-    //draw axis lines
+    //draw lines
     line(img, imgPoints[0], imgPoints[1], red, 2); //thickness = 2
     line(img, imgPoints[1], imgPoints[2], red, 2);
     line(img, imgPoints[2], imgPoints[3], red, 2);
@@ -144,6 +144,47 @@ void drawRectPrism(Mat &img, Mat &rvec, Mat &tvec, Mat &cameraMatrix, Mat &distC
     line(img, imgPoints[5], imgPoints[6], blue, 2);
     line(img, imgPoints[6], imgPoints[7], blue, 2);
     line(img, imgPoints[7], imgPoints[4], blue, 2);
+}
+
+void drawFish(Mat &img, Scalar &color, float x, float y, Mat &rvec, Mat &tvec, Mat &cameraMatrix, Mat &distCoeffs)
+{
+    float centerZ = 0.5;
+    vector<Point3f> points{//body
+                           {x, y, centerZ}, {x + 0.5, y, centerZ + 0.4}, {x + 1.1, y, centerZ}, {x + 0.6, y, centerZ-0.4},
+                           //upper fin
+                           {x + 0.4, y, centerZ + 0.4}, {x + 0.75, y, centerZ + 0.7}, {x + 1.1, y, centerZ + 0.4}, {x + 0.85, y, centerZ + 0.1},
+                           //tail
+                           {x + 1.1, y, centerZ}, {x + 1.7, y, centerZ + 0.4}, {x + 1.4, y, centerZ}, {x + 1.7, y, centerZ - 0.4},
+                           //lower fin
+                           {x + 0.6, y, centerZ - 0.4}, {x + 0.9, y, centerZ - 0.2}, {x + 1.1, y, centerZ - 0.4}, {x + 0.95, y, centerZ - 0.5}
+                          };
+    vector<Point2f> imgPoints;
+    projectPoints(points, rvec, tvec, cameraMatrix, distCoeffs, imgPoints);
+
+    //draw lines
+    //body
+    line(img, imgPoints[0], imgPoints[1], color, 2); //thickness = 2
+    line(img, imgPoints[1], imgPoints[2], color, 2);
+    line(img, imgPoints[2], imgPoints[3], color, 2);
+    line(img, imgPoints[3], imgPoints[0], color, 2);
+
+    //upper fin
+    line(img, imgPoints[4], imgPoints[5], color, 2); //thickness = 2
+    line(img, imgPoints[5], imgPoints[6], color, 2);
+    line(img, imgPoints[6], imgPoints[7], color, 2);
+    line(img, imgPoints[7], imgPoints[4], color, 2);
+
+    //tail
+    line(img, imgPoints[8], imgPoints[9], color, 2); //thickness = 2
+    line(img, imgPoints[9], imgPoints[10], color, 2);
+    line(img, imgPoints[10], imgPoints[11], color, 2);
+    line(img, imgPoints[11], imgPoints[8], color, 2);
+
+    //lower fin
+    line(img, imgPoints[12], imgPoints[13], color, 2); //thickness = 2
+    line(img, imgPoints[13], imgPoints[14], color, 2);
+    line(img, imgPoints[14], imgPoints[15], color, 2);
+    line(img, imgPoints[15], imgPoints[12], color, 2);
 }
 
 int openVideoInput( Mat cameraMatrix, Mat distCoeffs )
@@ -182,7 +223,12 @@ int openVideoInput( Mat cameraMatrix, Mat distCoeffs )
         if (chessboardFound)
         {
             solvePnP(point_set, corner_set, cameraMatrix, distCoeffs, rvec, tvec);
-            drawRectPrism(frame, rvec, tvec, cameraMatrix, distCoeffs);
+            
+            //drawAxes(frame, rvec, tvec, cameraMatrix, distCoeffs);
+            //drawRectPrism(frame, rvec, tvec, cameraMatrix, distCoeffs);
+            drawFish(frame, red, 3, 0, rvec, tvec, cameraMatrix, distCoeffs);
+            drawFish(frame, green, 1, -2, rvec, tvec, cameraMatrix, distCoeffs);
+            drawFish(frame, blue, 6, -4, rvec, tvec, cameraMatrix, distCoeffs);
         }
 
         imshow("Video", frame);

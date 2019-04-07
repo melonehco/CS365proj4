@@ -187,6 +187,121 @@ void drawFish(Mat &img, Scalar &color, float x, float y, Mat &rvec, Mat &tvec, M
     line(img, imgPoints[15], imgPoints[12], color, 2);
 }
 
+/**
+ * Project onto a saved image
+ */
+int openImgFile(const char* imgName, Mat cameraMatrix, Mat distCoeffs)
+{
+        //printf("reading in image file: %s\n", dp->d_name);
+
+        // read the image
+        Mat src;
+        src = imread( string(imgName) );
+
+        // test if the read was successful
+        if(src.data == NULL) 
+        {
+            cout << "Unable to read image" << imgName << "\n";
+            exit(-1);
+        }
+    // TODO: make this work
+}
+
+/**
+ * Project onto a chessboard inside of precaptured video footage
+ */
+int openVidFile(const char* vidName, Mat cameraMatrix, Mat distCoeffs)
+{
+    // TODO: Make this close properly instead of from an invalid pointer
+
+    VideoCapture *savedVid = new cv::VideoCapture(vidName);;
+
+    // open the video device
+	if( !savedVid->isOpened() ) {
+		printf("Unable to open video file %s\n", vidName);
+		return(-1);
+	}
+
+	cv::Size refS( (int) savedVid->get(CAP_PROP_FRAME_WIDTH ),
+		       (int) savedVid->get(CAP_PROP_FRAME_HEIGHT));
+
+	printf("Expected size: %d %d\n", refS.width, refS.height);
+
+	namedWindow("Video", 1);
+	Mat frame;
+
+    Size chessboardSize(9,6); // decided by user
+
+    int filenameNum = 0;
+    int printIntervalCount = 0;
+	for(;;) {
+		//savedVid >> frame; // get a new frame from the camera, treat as a stream
+        if (savedVid->read(frame) == false)
+        {
+            cout << "frame empty\n";
+            break;            
+        }
+
+        //exit if frame is empty
+        // if (frame.empty())
+        // {
+        //     cout << "frame empty\n";
+        //     break;
+        // }
+
+        vector<Point2f> corner_set;
+        vector<Point3f> point_set = buildPointSet(chessboardSize);
+        Mat rvec = Mat::zeros(1, 3, DataType<double>::type);
+        Mat tvec = Mat::zeros(1, 3, DataType<double>::type);
+
+        bool chessboardFound = findChessboardCorners(frame, chessboardSize, corner_set);
+
+        if (chessboardFound)
+        {
+            solvePnP(point_set, corner_set, cameraMatrix, distCoeffs, rvec, tvec);
+            
+            //drawAxes(frame, rvec, tvec, cameraMatrix, distCoeffs);
+            //drawRectPrism(frame, rvec, tvec, cameraMatrix, distCoeffs);
+            drawFish(frame, red, 3, 0, rvec, tvec, cameraMatrix, distCoeffs);
+            drawFish(frame, green, 1, -2, rvec, tvec, cameraMatrix, distCoeffs);
+            drawFish(frame, blue, 6, -4, rvec, tvec, cameraMatrix, distCoeffs);
+        }
+
+        imshow("Video", frame);
+
+        //check for user keyboard input
+        char key = waitKey(10);
+        
+		if(key == 'q') {
+		    break;
+		}
+
+        printIntervalCount++;
+        if (printIntervalCount%5 == 0)
+        {
+            cout << "frame " << printIntervalCount << "\n";
+            cout << "rvec: ";
+            for (int i = 0; i < 3; i++)
+            {
+                cout << rvec.at<double>(i) << " ";
+            }
+            cout << "\n";
+            cout << "tvec: ";
+            for (int i = 0; i < 3; i++)
+            {
+                cout << tvec.at<double>(i) << " ";
+            }
+            cout << "\n\n";
+        }
+
+	}
+
+    delete savedVid;
+    //savedVid->release();
+
+    return (0);
+}
+
 int openVideoInput( Mat cameraMatrix, Mat distCoeffs )
 {
     VideoCapture *capdev;
@@ -268,14 +383,14 @@ int openVideoInput( Mat cameraMatrix, Mat distCoeffs )
 int main(int argc, char *argv[])
 {
     char paramFilename[256];
+    char imgOrVidName[256];
 	// If user didn't give parameter file name
 	if(argc < 2) 
 	{
-		cout << "Usage: ../bin/arSystem |parameter file name|\n";
+		cout << "Usage: ../bin/arSystem |parameter file name| [Optional image/video file name]\n";
 		exit(-1);
 	}
-
-	strcpy(paramFilename, argv[1]);
+    strcpy(paramFilename, argv[1]);
 
     Mat cameraMatrix(3, 3, CV_64FC1);
     Mat distCoeffs = Mat::zeros(8, 1, CV_64F);
@@ -283,7 +398,35 @@ int main(int argc, char *argv[])
     //read in camera calibration parameters
     readCalibrationFile(paramFilename, cameraMatrix, distCoeffs);
 
-    openVideoInput(cameraMatrix, distCoeffs);
+    if (argc == 3) 
+    {
+        strcpy(imgOrVidName, argv[2]);
+
+        // image
+        if( strstr(imgOrVidName, ".jpg") ||
+            strstr(imgOrVidName, ".png") ||
+            strstr(imgOrVidName, ".ppm") ||
+            strstr(imgOrVidName, ".tif") ) 
+        {
+            openImgFile(imgOrVidName, cameraMatrix, distCoeffs);
+        }
+        // prerecorded video
+        else if (strstr(imgOrVidName, ".mp4") ||
+            strstr(imgOrVidName, ".m4v") ||
+            strstr(imgOrVidName, ".MOV") ||
+            strstr(imgOrVidName, ".avi") )
+        {
+            openVidFile(imgOrVidName, cameraMatrix, distCoeffs);
+        }
+        else
+        {
+            cout << "Not a valid image or video extension\n";
+        }
+    }
+    else // live feed
+    {
+        openVideoInput(cameraMatrix, distCoeffs);        
+    }
 
     return 0;
 }

@@ -38,5 +38,8 @@ calibration: calibration.o
 arSystem: arSystem.o
 	$(CC) $^ -o $(BINDIR)/$@ $(LDFLAGS) $(LDLIBS)
 
+harrisCorners: harrisCorners.o
+	$(CC) $^ -o $(BINDIR)/$@ $(LDFLAGS) $(LDLIBS)
+
 clean:
 	rm -f *.o *~ 

@@ -214,6 +214,8 @@ int openVidFile(const char* vidName, Mat cameraMatrix, Mat distCoeffs)
 {
     // TODO: Make this close properly instead of from an invalid pointer
 
+    cout << "TOP\n";
+    
     VideoCapture *savedVid = new cv::VideoCapture(vidName);;
 
     // open the video device
@@ -221,6 +223,8 @@ int openVidFile(const char* vidName, Mat cameraMatrix, Mat distCoeffs)
 		printf("Unable to open video file %s\n", vidName);
 		return(-1);
 	}
+
+    cout << "TRIED TO OPEN\n";
 
 	cv::Size refS( (int) savedVid->get(CAP_PROP_FRAME_WIDTH ),
 		       (int) savedVid->get(CAP_PROP_FRAME_HEIGHT));
@@ -236,6 +240,7 @@ int openVidFile(const char* vidName, Mat cameraMatrix, Mat distCoeffs)
     int printIntervalCount = 0;
 	for(;;) {
 		//savedVid >> frame; // get a new frame from the camera, treat as a stream
+        cout << "LOOP DE DOOP\n";
         if (savedVid->read(frame) == false)
         {
             cout << "frame empty\n";
@@ -397,6 +402,7 @@ int main(int argc, char *argv[])
 
     //read in camera calibration parameters
     readCalibrationFile(paramFilename, cameraMatrix, distCoeffs);
+    cout << "Read in calibration file...\n";
 
     if (argc == 3) 
     {
@@ -414,6 +420,7 @@ int main(int argc, char *argv[])
         else if (strstr(imgOrVidName, ".mp4") ||
             strstr(imgOrVidName, ".m4v") ||
             strstr(imgOrVidName, ".MOV") ||
+            strstr(imgOrVidName, ".mov") ||
             strstr(imgOrVidName, ".avi") )
         {
             openVidFile(imgOrVidName, cameraMatrix, distCoeffs);

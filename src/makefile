@@ -26,7 +26,7 @@ CXXFLAGS = $(CFLAGS)
 LDFLAGS = -L/usr/lib/x86_64-linux-gnu # opencv libraries are here
 
 # opencv libraries
-LDLIBS = -lopencv_core -lopencv_highgui -lopencv_video -lopencv_videoio -lopencv_imgproc -lopencv_imgcodecs -lopencv_calib3d
+LDLIBS = -lopencv_core -lopencv_highgui -lopencv_video -lopencv_videoio -lopencv_imgproc -lopencv_imgcodecs -lopencv_calib3d  -lglut -lGLU -lGL -lX11 -lm -lXmu -ltiff
 
 
 
@@ -39,6 +39,9 @@ arSystem: arSystem.o
 	$(CC) $^ -o $(BINDIR)/$@ $(LDFLAGS) $(LDLIBS)
 
 harrisCorners: harrisCorners.o
+	$(CC) $^ -o $(BINDIR)/$@ $(LDFLAGS) $(LDLIBS)
+
+extension2: extension2.o
 	$(CC) $^ -o $(BINDIR)/$@ $(LDFLAGS) $(LDLIBS)
 
 clean:

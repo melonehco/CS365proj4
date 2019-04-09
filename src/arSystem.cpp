@@ -190,20 +190,73 @@ void drawFish(Mat &img, Scalar &color, float x, float y, Mat &rvec, Mat &tvec, M
 /**
  * Project onto a saved image
  */
-int openImgFile(const char* imgName, Mat cameraMatrix, Mat distCoeffs)
+int openImgFile(/*const*/ char* imgName, Mat cameraMatrix, Mat distCoeffs)
 {
-        //printf("reading in image file: %s\n", dp->d_name);
+    cout << "Opening image file " << string(imgName) << "\n";
 
-        // read the image
-        Mat src;
-        src = imread( string(imgName) );
+    // read the image
+    Mat src;
+    src = imread( string(imgName) );
 
-        // test if the read was successful
-        if(src.data == NULL) 
+    // test if the read was successful
+    if(src.data == NULL) 
+    {
+        cout << "Unable to read image" << imgName << "\n";
+        exit(-1);
+    }
+
+    Size chessboardSize(9,6);
+
+    vector<Point2f> corner_set;
+    vector<Point3f> point_set = buildPointSet(chessboardSize);
+    Mat rvec = Mat::zeros(1, 3, DataType<double>::type);
+    Mat tvec = Mat::zeros(1, 3, DataType<double>::type);
+
+    //cout << "FINDING CORNERS\n";
+
+    bool chessboardFound = findChessboardCorners(src, chessboardSize, corner_set);
+
+    //cout << "above if\n";
+
+    if (chessboardFound)
+    {
+        solvePnP(point_set, corner_set, cameraMatrix, distCoeffs, rvec, tvec);
+
+        //cout << "SOLVED PNP\n";
+        
+        //drawAxes(frame, rvec, tvec, cameraMatrix, distCoeffs);
+        //drawRectPrism(frame, rvec, tvec, cameraMatrix, distCoeffs);
+        drawFish(src, red, 3, 0, rvec, tvec, cameraMatrix, distCoeffs);
+        drawFish(src, green, 1, -2, rvec, tvec, cameraMatrix, distCoeffs);
+        drawFish(src, blue, 6, -4, rvec, tvec, cameraMatrix, distCoeffs);
+
+        cout << "rvec: ";
+        for (int i = 0; i < 3; i++)
         {
-            cout << "Unable to read image" << imgName << "\n";
-            exit(-1);
+            cout << rvec.at<double>(i) << " ";
         }
+        cout << "\n";
+        cout << "tvec: ";
+        for (int i = 0; i < 3; i++)
+        {
+            cout << tvec.at<double>(i) << " ";
+        }
+        cout << "\n";
+    }
+
+    imshow("Image", src);
+
+    //check for user keyboard input
+    while (true)
+    {
+        char key = waitKey(10);
+    
+        if(key == 'q')
+        {
+            break;
+        }
+    }
+
     // TODO: make this work
 }
 
@@ -214,9 +267,11 @@ int openVidFile(const char* vidName, Mat cameraMatrix, Mat distCoeffs)
 {
     // TODO: Make this close properly instead of from an invalid pointer
 
-    cout << "TOP\n";
+    cout << "Opening video file " << string(vidName) << "\n";
     
-    VideoCapture *savedVid = new cv::VideoCapture(vidName);;
+    VideoCapture *savedVid = new cv::VideoCapture(vidName);
+
+    cout << "checking whether open\n";
 
     // open the video device
 	if( !savedVid->isOpened() ) {
@@ -224,7 +279,7 @@ int openVidFile(const char* vidName, Mat cameraMatrix, Mat distCoeffs)
 		return(-1);
 	}
 
-    cout << "TRIED TO OPEN\n";
+    cout << "CHECKED OPEN\n";
 
 	cv::Size refS( (int) savedVid->get(CAP_PROP_FRAME_WIDTH ),
 		       (int) savedVid->get(CAP_PROP_FRAME_HEIGHT));
@@ -234,9 +289,8 @@ int openVidFile(const char* vidName, Mat cameraMatrix, Mat distCoeffs)
 	namedWindow("Video", 1);
 	Mat frame;
 
-    Size chessboardSize(9,6); // decided by user
+    Size chessboardSize(9,6);
 
-    int filenameNum = 0;
     int printIntervalCount = 0;
 	for(;;) {
 		//savedVid >> frame; // get a new frame from the camera, treat as a stream
@@ -274,13 +328,6 @@ int openVidFile(const char* vidName, Mat cameraMatrix, Mat distCoeffs)
 
         imshow("Video", frame);
 
-        //check for user keyboard input
-        char key = waitKey(10);
-        
-		if(key == 'q') {
-		    break;
-		}
-
         printIntervalCount++;
         if (printIntervalCount%5 == 0)
         {
@@ -299,6 +346,12 @@ int openVidFile(const char* vidName, Mat cameraMatrix, Mat distCoeffs)
             cout << "\n\n";
         }
 
+        //check for user keyboard input
+        char key = waitKey(10);
+        
+		if(key == 'q') {
+		    break;
+		}
 	}
 
     delete savedVid;
@@ -326,9 +379,8 @@ int openVideoInput( Mat cameraMatrix, Mat distCoeffs )
 	namedWindow("Video", 1);
 	Mat frame;
 
-    Size chessboardSize(9,6); // decided by user
+    Size chessboardSize(9,6);
 
-    int filenameNum = 0;
     int printIntervalCount = 0;
 	for(;;) {
 		*capdev >> frame; // get a new frame from the camera, treat as a stream

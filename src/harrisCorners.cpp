@@ -29,17 +29,22 @@
 using namespace std;
 using namespace cv;
 
+/**
+ * Attempts to detect Harris corners in the given image and
+ * draws markers into the image if they're found
+ */
 void tryDrawHarrisCorners(Mat &imgFrame)
 {
     Mat gray;
     cvtColor(imgFrame, gray, CV_BGR2GRAY);
 
+    //for Harris corner output (filtered image)
     Mat dst = Mat::zeros( imgFrame.size(), CV_32FC1 );
 
     int blockSize = 2; // neighborhood size
     int apertureSize = 3; // aka ksize
     double k = .04; // "Harris detector free parameter"
-    double thresh = .001;
+    double thresh = .001; //threshold pixel value for what we consider a corner
 
     cornerHarris( gray, dst, blockSize, apertureSize, k );
 
@@ -48,14 +53,19 @@ void tryDrawHarrisCorners(Mat &imgFrame)
     {
         for( int j = 0; j < imgFrame.cols; j++ )
         {
-            if(dst.at<float>(i,j) > thresh )
+            if(dst.at<float>(i,j) > thresh ) //if this pixel is a corner
             {
+                //draw a marker here
                 circle( imgFrame, Point(j,i), 5, circleColor, 2, 8, 0 );
             }
         }
     }
 }
 
+/**
+ * Looks for Harris corners on a live video feed and
+ * draws in markers if corners found
+ */
 int openVideoInput()
 {
     VideoCapture *capdev;
@@ -84,7 +94,6 @@ int openVideoInput()
 
         //check for user keyboard input
         char key = waitKey(10);
-        
 		if(key == 'q') {
 		    break;
 		}

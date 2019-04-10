@@ -29,6 +29,10 @@
 using namespace std;
 using namespace cv;
 
+/**
+ * Detects corners of a chessboard of the given size in the given image frame
+ * and draws markers into the frame if found
+ */
 vector<Point2f> detectCorners(Mat imageFrame, Size chessboardSize)
 {
     vector<Point2f> corner_set;
@@ -40,7 +44,7 @@ vector<Point2f> detectCorners(Mat imageFrame, Size chessboardSize)
         Mat gray;
         cvtColor(imageFrame, gray, CV_BGR2GRAY);
         Size searchArea(5,5);
-        Size zeroZone(-1,-1); // not needed
+        Size zeroZone(-1,-1); //unused parameter
         TermCriteria criteria(CV_TERMCRIT_EPS + CV_TERMCRIT_ITER, 40, 0.001);
         cornerSubPix(gray, corner_set, searchArea, zeroZone, criteria);
     }
@@ -50,7 +54,8 @@ vector<Point2f> detectCorners(Mat imageFrame, Size chessboardSize)
 }
 
 /**
- * Converts the given corners from pixel coordinates to units of chessboard squares
+ * Builds a set of 3D-space points for the corners of a chessboard of the given size,
+ * with coordinates in units of chessboard squares
  */
 vector<Point3f> buildPointSet(Size chessboardSize)
 {
@@ -61,13 +66,15 @@ vector<Point3f> buildPointSet(Size chessboardSize)
         for (int j = 0; j < chessboardSize.width; j++)
         {
             points.push_back(Point3f(j, -i, 0));
-            cout << j << ", " << "-" << i << "\n";
         }
     }
     
     return points;
 }
 
+/**
+ * Prints the given calibration results to standard output
+ */
 void printCalibrationInfo(Mat cameraMatrix, Mat distCoeffs, double reprojError)
 {
     cout << "\ncamera matrix:\n";
@@ -91,7 +98,8 @@ void printCalibrationInfo(Mat cameraMatrix, Mat distCoeffs, double reprojError)
 }
 
 /**
- * Classifies objects on a live video feed
+ * Looks for chessboard corners on a live video feed and
+ * allows the user to run calibration
  */
 int openVideoInput( )
 {
@@ -112,11 +120,12 @@ int openVideoInput( )
 	namedWindow("Video", 1);
 	Mat frame;
 
-    Size chessboardSize(9,6); // decided by user
+    Size chessboardSize(9,6);
 
-    vector< vector<Point2f> > savedCornerSets;
-    vector< vector<Point3f> > savedPointSets;
+    vector< vector<Point2f> > savedCornerSets; //vector of corner lists for each calib frame
+    vector< vector<Point3f> > savedPointSets; //vector of point lists for each calib frame
 
+    //initial camera matrix estimate
     double cameraMatrixData[3][3] = 
                             { 
                                 {1, 0, frame.cols/2.0},
@@ -127,7 +136,7 @@ int openVideoInput( )
     Mat distCoeffs = Mat::zeros(8, 1, CV_64F);
     vector<Mat> rvecs, tvecs;
 
-    int filenameNum = 0;
+    int filenameNum = 0; //for saving calibration frames
 	for(;;) {
 		*capdev >> frame; // get a new frame from the camera, treat as a stream
 
@@ -141,12 +150,14 @@ int openVideoInput( )
 
 		    savedCornerSets.push_back(corners);
             savedPointSets.push_back( buildPointSet(chessboardSize) );
+
+            //save calibration frame
             string filename = "calibration_frame_" + to_string(filenameNum) + ".jpg";
             imwrite(filename, frame);
-            
             filenameNum++;
 		}
         else if(key == 'c') { //c to calibrate camera
+            //if the user has saved enough calibration frames
             if (savedCornerSets.size() >= 5)
             {
                 double reprojError = calibrateCamera(savedPointSets, savedCornerSets, frame.size(),
@@ -157,7 +168,8 @@ int openVideoInput( )
         }
         else if(key == 'f') //f to write camera intrinsic parameters to a file
         {
-            if (distCoeffs.at<double>(0, 0) != 0) //if distCoeffs have been set
+            //if distCoeffs have been set (i.e. if a calibration has been run)
+            if (distCoeffs.at<double>(0, 0) != 0)
             {
                 ofstream outfile;
                 outfile.open ("calibration.txt");
@@ -179,7 +191,8 @@ int openVideoInput( )
                 outfile.close();
             }
         }
-		else if(key == 'q') {
+		else if(key == 'q') //q to exit
+        {
 		    break;
 		}
 
@@ -192,12 +205,10 @@ int openVideoInput( )
 
 int main( int argc, char *argv[] ) 
 {
-
     cout << "\nOpening live video..\n";
     openVideoInput();
 		
 	printf("\nTerminating\n");
 
 	return(0);
-
 }

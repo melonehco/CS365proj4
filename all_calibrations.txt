@@ -1,0 +1,28 @@
+six-eyed camera
+
+camera matrix:
+784.237 0 119.272 
+0 784.237 49.7885 
+0 0 1 
+
+distortion coefficients:
+-0.481049 0.492801 0.00323961 0.0128227 -0.265811 
+
+re-projection error: 1.10618
+
+
+red camera
+
+
+Logitech HD 1080p
+camera matrix:
+654.139 0 293.839 
+0 654.139 275.551 
+0 0 1 
+
+distortion coefficients:
+-0.165339 0.0814337 0.0122441 -0.0105339 1.29826 
+
+re-projection error: 0.564699
+
+

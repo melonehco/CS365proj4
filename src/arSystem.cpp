@@ -1,6 +1,6 @@
 /* arSystem.cpp
- * Reads in camera calibration parameters and uses them to detect a chessboard
- * in video input and project objects onto the video input
+ * Reads in camera calibration parameters, uses them to detect a chessboard
+ * in video input, and project objects onto the video feed
  * 
  * to compile:
  * make arSystem
@@ -33,6 +33,10 @@ Scalar red = Scalar(0, 0, 255);
 Scalar green = Scalar(0, 255, 0);
 Scalar blue = Scalar(255, 0, 0);
 
+/**
+ * Reads in the given calibration file (in the format written out by calibration.cpp)
+ * and writes the camera parameters into the given Mats
+ */
 void readCalibrationFile(char* calibrationFilename, Mat &cameraMatrix, Mat &distCoeffs)
 {
     ifstream paramFile (calibrationFilename);
@@ -40,7 +44,8 @@ void readCalibrationFile(char* calibrationFilename, Mat &cameraMatrix, Mat &dist
     if (paramFile.is_open())
     {
         string line;
-        char *lineArr = new char[line.length()+1];
+        char *lineArr = new char[line.length()+1]; //line as char array for strtok
+
         for (int i = 0; i < 3; i++) //loop for 3 rows of camera matrix
         {
             getline(paramFile, line);
@@ -48,7 +53,7 @@ void readCalibrationFile(char* calibrationFilename, Mat &cameraMatrix, Mat &dist
 
             //for 3 columns in each row
             cameraMatrix.at<double>(i, 0) = atof( strtok(lineArr, " ") );
-            cameraMatrix.at<double>(i, 1) = atof( strtok(NULL, " ") );
+            cameraMatrix.at<double>(i, 1) = atof( strtok(NULL, " ") ); //NULL b/c continuing on same line
             cameraMatrix.at<double>(i, 2) = atof( strtok(NULL, " ") );
         }
 
@@ -56,7 +61,7 @@ void readCalibrationFile(char* calibrationFilename, Mat &cameraMatrix, Mat &dist
         getline(paramFile, line);
 
         strcpy(lineArr, line.c_str());
-        char *word = strtok(lineArr, " ");
+        char *word = strtok(lineArr, " "); //line as char array for strtok
         int i = 0;
         while (word != NULL) //loop while there are more words to read in on the line
         {
@@ -89,13 +94,11 @@ void readCalibrationFile(char* calibrationFilename, Mat &cameraMatrix, Mat &dist
         cout << distCoeffs.at<double>(i, 0) << " ";
     }
     cout << "\n";
-
-    string ugh;
-    cin >> ugh;
 }
 
 /**
- * Converts the given corners from pixel coordinates to units of chessboard squares
+ * Builds a set of 3D-space points for the corners of a chessboard of the given size,
+ * with coordinates in units of chessboard squares
  */
 vector<Point3f> buildPointSet(Size chessboardSize)
 {
@@ -112,6 +115,10 @@ vector<Point3f> buildPointSet(Size chessboardSize)
     return points;
 }
 
+/**
+ * Projects and draws a set of axes into the given image at the origin,
+ * using the given camera parameters and chessboard pose information
+ */
 void drawAxes(Mat &img, Mat &rvec, Mat &tvec, Mat &cameraMatrix, Mat &distCoeffs)
 {
     vector<Point3f> axesPoints{{0, 0, 0}, {1, 0, 0}, {0, -1, 0}, {0, 0, 1}};
@@ -124,6 +131,10 @@ void drawAxes(Mat &img, Mat &rvec, Mat &tvec, Mat &cameraMatrix, Mat &distCoeffs
     line(img, axesImgPoints[0], axesImgPoints[3], blue, 2);
 }
 
+/**
+ * Projects and draws a rectangular prism into the given image at the origin,
+ * using the given camera parameters and chessboard pose information
+ */
 void drawRectPrism(Mat &img, Mat &rvec, Mat &tvec, Mat &cameraMatrix, Mat &distCoeffs)
 {
     vector<Point3f> points{{0, 0, 0}, {0, 0, 3}, {4, 0, 3}, {4, 0, 0},
@@ -146,6 +157,11 @@ void drawRectPrism(Mat &img, Mat &rvec, Mat &tvec, Mat &cameraMatrix, Mat &distC
     line(img, imgPoints[7], imgPoints[4], blue, 2);
 }
 
+/**
+ * Projects and draws a fish into the given image at the given coordinates,
+ * in the given color, using the given camera parameters and chessboard pose
+ * information
+ */
 void drawFish(Mat &img, Scalar &color, float x, float y, Mat &rvec, Mat &tvec, Mat &cameraMatrix, Mat &distCoeffs)
 {
     float centerZ = 0.5;
@@ -188,9 +204,9 @@ void drawFish(Mat &img, Scalar &color, float x, float y, Mat &rvec, Mat &tvec, M
 }
 
 /**
- * Project onto a saved image
+ * Project onto a saved image using the given camera parameters
  */
-int openImgFile(/*const*/ char* imgName, Mat cameraMatrix, Mat distCoeffs)
+int openImgFile(char* imgName, Mat cameraMatrix, Mat distCoeffs)
 {
     cout << "Opening image file " << string(imgName) << "\n";
 
@@ -212,17 +228,11 @@ int openImgFile(/*const*/ char* imgName, Mat cameraMatrix, Mat distCoeffs)
     Mat rvec = Mat::zeros(1, 3, DataType<double>::type);
     Mat tvec = Mat::zeros(1, 3, DataType<double>::type);
 
-    //cout << "FINDING CORNERS\n";
-
     bool chessboardFound = findChessboardCorners(src, chessboardSize, corner_set);
-
-    //cout << "above if\n";
 
     if (chessboardFound)
     {
         solvePnP(point_set, corner_set, cameraMatrix, distCoeffs, rvec, tvec);
-
-        //cout << "SOLVED PNP\n";
         
         //drawAxes(src, rvec, tvec, cameraMatrix, distCoeffs);
         //drawRectPrism(src, rvec, tvec, cameraMatrix, distCoeffs);
@@ -244,6 +254,7 @@ int openImgFile(/*const*/ char* imgName, Mat cameraMatrix, Mat distCoeffs)
         cout << "\n";
     }
 
+    //display result
     imshow("Image", src);
 
     //check for user keyboard input
@@ -256,8 +267,6 @@ int openImgFile(/*const*/ char* imgName, Mat cameraMatrix, Mat distCoeffs)
             break;
         }
     }
-
-    // TODO: make this work
 }
 
 /**
@@ -265,21 +274,15 @@ int openImgFile(/*const*/ char* imgName, Mat cameraMatrix, Mat distCoeffs)
  */
 int openVidFile(const char* vidName, Mat cameraMatrix, Mat distCoeffs)
 {
-    // TODO: Make this close properly instead of from an invalid pointer
-
     cout << "Opening video file " << string(vidName) << "\n";
     
     VideoCapture *savedVid = new cv::VideoCapture(vidName);
 
-    cout << "checking whether open\n";
-
-    // open the video device
+    // open the video file
 	if( !savedVid->isOpened() ) {
 		printf("Unable to open video file %s\n", vidName);
 		return(-1);
 	}
-
-    cout << "CHECKED OPEN\n";
 
 	cv::Size refS( (int) savedVid->get(CAP_PROP_FRAME_WIDTH ),
 		       (int) savedVid->get(CAP_PROP_FRAME_HEIGHT));
@@ -293,20 +296,12 @@ int openVidFile(const char* vidName, Mat cameraMatrix, Mat distCoeffs)
 
     int printIntervalCount = 0;
 	for(;;) {
-		//savedVid >> frame; // get a new frame from the camera, treat as a stream
-        cout << "LOOP DE DOOP\n";
+		// read the next frame
         if (savedVid->read(frame) == false)
         {
             cout << "frame empty\n";
             break;            
         }
-
-        //exit if frame is empty
-        // if (frame.empty())
-        // {
-        //     cout << "frame empty\n";
-        //     break;
-        // }
 
         vector<Point2f> corner_set;
         vector<Point3f> point_set = buildPointSet(chessboardSize);
@@ -315,6 +310,7 @@ int openVidFile(const char* vidName, Mat cameraMatrix, Mat distCoeffs)
 
         bool chessboardFound = findChessboardCorners(frame, chessboardSize, corner_set);
 
+        //project/draw into frame if chessboard found
         if (chessboardFound)
         {
             solvePnP(point_set, corner_set, cameraMatrix, distCoeffs, rvec, tvec);
@@ -328,6 +324,7 @@ int openVidFile(const char* vidName, Mat cameraMatrix, Mat distCoeffs)
 
         imshow("Video", frame);
 
+        //print out rotation and translation vectors every 5 frames
         printIntervalCount++;
         if (printIntervalCount%5 == 0)
         {
@@ -348,18 +345,20 @@ int openVidFile(const char* vidName, Mat cameraMatrix, Mat distCoeffs)
 
         //check for user keyboard input
         char key = waitKey(10);
-        
 		if(key == 'q') {
 		    break;
 		}
 	}
 
     delete savedVid;
-    //savedVid->release();
 
     return (0);
 }
 
+/**
+ * Looks for chessboard corners on a live video feed and
+ * projects onto the video feed with the given parameters if board found
+ */
 int openVideoInput( Mat cameraMatrix, Mat distCoeffs )
 {
     VideoCapture *capdev;
@@ -392,6 +391,7 @@ int openVideoInput( Mat cameraMatrix, Mat distCoeffs )
 
         bool chessboardFound = findChessboardCorners(frame, chessboardSize, corner_set);
 
+        //project/draw into frame if chessboard found
         if (chessboardFound)
         {
             solvePnP(point_set, corner_set, cameraMatrix, distCoeffs, rvec, tvec);
@@ -405,13 +405,7 @@ int openVideoInput( Mat cameraMatrix, Mat distCoeffs )
 
         imshow("Video", frame);
 
-        //check for user keyboard input
-        char key = waitKey(10);
-        
-		if(key == 'q') {
-		    break;
-		}
-
+        //print out rotation and translation vectors every 5 frames
         printIntervalCount++;
         if (printIntervalCount%5 == 0)
         {
@@ -430,6 +424,11 @@ int openVideoInput( Mat cameraMatrix, Mat distCoeffs )
             cout << "\n\n";
         }
 
+        //check for user keyboard input
+        char key = waitKey(10);
+		if(key == 'q') {
+		    break;
+		}
 	}
 
 	// terminate the video capture
@@ -441,6 +440,7 @@ int main(int argc, char *argv[])
 {
     char paramFilename[256];
     char imgOrVidName[256];
+
 	// If user didn't give parameter file name
 	if(argc < 2) 
 	{
@@ -456,7 +456,7 @@ int main(int argc, char *argv[])
     readCalibrationFile(paramFilename, cameraMatrix, distCoeffs);
     cout << "Read in calibration file...\n";
 
-    if (argc == 3) 
+    if (argc == 3) //if user gave an image/video filename
     {
         strcpy(imgOrVidName, argv[2]);
 

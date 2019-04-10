@@ -224,8 +224,8 @@ int openImgFile(/*const*/ char* imgName, Mat cameraMatrix, Mat distCoeffs)
 
         //cout << "SOLVED PNP\n";
         
-        //drawAxes(frame, rvec, tvec, cameraMatrix, distCoeffs);
-        //drawRectPrism(frame, rvec, tvec, cameraMatrix, distCoeffs);
+        //drawAxes(src, rvec, tvec, cameraMatrix, distCoeffs);
+        //drawRectPrism(src, rvec, tvec, cameraMatrix, distCoeffs);
         drawFish(src, red, 3, 0, rvec, tvec, cameraMatrix, distCoeffs);
         drawFish(src, green, 1, -2, rvec, tvec, cameraMatrix, distCoeffs);
         drawFish(src, blue, 6, -4, rvec, tvec, cameraMatrix, distCoeffs);

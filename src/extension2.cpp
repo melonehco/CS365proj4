@@ -23,6 +23,7 @@
 #include "opencv2/opencv.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 #include "opencv2/calib3d/calib3d.hpp"
+#include "opencv2/highgui/highgui.hpp"
 #include <GL/gl.h>
 
 using namespace std;
@@ -245,6 +246,11 @@ void drawFish(Mat &img, Scalar &color, float x, float y, Mat &rvec, Mat &tvec, M
 
 int openVideoInput( Mat cameraMatrix, Mat distCoeffs )
 {
+    //TODO: moved here
+
+    const string winName = "Video";
+	namedWindow(winName, WINDOW_OPENGL); //OpenGL tag
+    
     VideoCapture *capdev;
 
 	// open the video device
@@ -259,8 +265,7 @@ int openVideoInput( Mat cameraMatrix, Mat distCoeffs )
 
 	printf("Expected size: %d %d\n", refS.width, refS.height);
 
-    const string winName = "Video";
-	namedWindow(winName, WINDOW_OPENGL); //OpenGL tag
+    //TODO: was here
 	Mat frame;
 
     Size chessboardSize(9,6);
